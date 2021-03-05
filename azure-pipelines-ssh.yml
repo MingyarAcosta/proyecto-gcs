@@ -1,0 +1,30 @@
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-18.04
+
+stages:
+- stage: proyecto_gcs_master
+  jobs:
+  - job: Deploying
+    steps:
+    - task: SSH@0
+      inputs:
+        sshEndpoint: webserver-connection
+        runOptions: 'inline'
+        inline: |
+            sudo systemctl stop gcs-app
+            #sudo rpm -e --quiet gcs-app || true
+            sudo rpm -e gcs-app || true
+            sudo rpm -i gcs-app-2.8.x-1.noarch.rpm
+            sudo chown -R gcs-app /usr/share/gcs-app/
+            sudo chgrp -R gcs-app /usr/share/gcs-app/
+            sudo chef-client --local-mode -j atributos.json
+            sudo systemctl start gcs-app
+            sudo rm /usr/share/gcs-app/RUNNING_PID
+            sudo systemctl restart gcs-app
