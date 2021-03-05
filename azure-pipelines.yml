@@ -13,6 +13,51 @@ stages:
   jobs:
   - job: Deploying
     steps:
+    - bash: |
+        sudo apt update -y
+        
+        curl https://downloads.lightbend.com/scala/2.12.2/scala-2.12.2.deb --output scala-2.12.2.deb
+        sudo dpkg -i scala-2.12.2.deb
+        
+        echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
+        curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | sudo apt-key add
+        sudo apt-get update
+        sudo apt-get install sbt
+        
+        sudo apt install -y git
+        sudo apt install -y rpm
+        
+        sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+        apt-cache policy docker-ce
+        sudo apt install -y docker-ce
+        
+        sudo apt-get purge --auto-remove openjdk*
+        sudo apt install -y openjdk-8-jdk
+      displayName: Provisioning
+    - bash: |
+        sbt compile
+      displayName: Compiling
+    - bash: |
+        sbt test
+        
+        sudo systemctl start docker
+        sudo docker run -d --name postgres-docker -e POSTGRES_PASSWORD=gcs -e POSTGRES_USER=gcs -e POSTGRES_DB=gcs -p 127.0.0.1:5432:5432 postgres:9.5
+        sudo timeout 90s bash -c 'until docker exec postgres-docker pg_isready; do sleep 5; done'
+        
+        sbt "project gcsAppIT" test
+      displayName: Testing
+    - bash: |
+        sbt rpm:packageBin
+        sudo cp gcs-app/target/rpm/RPMS/noarch/gcs-app-2.8.x-1.noarch.rpm /home/vsts/gcs-app-2.8.x-1.noarch.rpm
+      displayName: Binary Packaging
+    - task: CopyFilesOverSSH@0
+      inputs:
+        sshEndpoint: webserver-connection
+        sourceFolder: /home/vsts/
+        contents: gcs-app-2.8.x-1.noarch.rpm
+        targetFolder: /home/azureuser
     - task: SSH@0
       inputs:
         sshEndpoint: webserver-connection
