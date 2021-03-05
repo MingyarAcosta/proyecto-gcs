@@ -1,16 +1,24 @@
 $script = <<-'SCRIPT'
-yum -y update
-yum -y install java-1.8.0-openjdk-devel
+sudo yum -y update
+sudo yum -y install java-1.8.0-openjdk-devel
 curl https://downloads.lightbend.com/scala/2.12.10/scala-2.12.10.rpm --output scala-2.12.10.rpm
-yum -y install scala-2.12.10.rpm
-curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.repo
-yum -y install sbt
-yum install -y git
-yum install -y which
-yum install -y yum-utils
-yum -y install rpm-build
-yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-yum install -y docker-ce docker-ce-cli containerd.io
+sudo yum -y install scala-2.12.10.rpm
+curl https://bintray.com/sbt/rpm/rpm | sudo tee /etc/yum.repos.d/bintray-sbt-rpm.repo
+sudo yum -y install sbt
+sudo yum install -y git
+sudo yum install -y which
+sudo yum install -y yum-utils
+sudo yum -y install rpm-build
+sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+sudo yum install -y docker-ce docker-ce-cli containerd.io
+
+sudo cp /vagrant/ssh-keys/webserver-test_key.pem /home/vagrant/.ssh/id_webserver-test
+sudo cp /vagrant/ssh-keys/dbserver-test_key.pem /home/vagrant/.ssh/id_dbserver-test
+
+sudo ulimit -c unlimited
+sudo cd /vagrant
+sudo sbt rpm:packageBin
+
 SCRIPT
 
 Vagrant.configure("2") do |config|
