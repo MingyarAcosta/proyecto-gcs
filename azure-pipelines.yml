@@ -38,6 +38,7 @@ stages:
       displayName: Provisioning
     - bash: |
         sbt compile
+        echo Compiling
       displayName: Compiling
     - bash: |
         sbt test
